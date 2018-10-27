@@ -89,64 +89,65 @@ class usuarios
 
         $usuario = $datosUsuario->usuario;
 
-        $perfil    = self::perfilUsuario();
-        $foto      = $datosUsuario->foto;
+        $perfil = self::perfilUsuario();
+        $foto      = self::crearFoto($usuario,$datosUsuario->foto);
         $isActive  = self::activarUsuario();
         $telefono  = $datosUsuario->telefono;
         $email     = $datosUsuario->correo;
         $direccion = $datosUsuario->direccion;
+        $claveApi  = self::generarClaveApi();
 
-        $claveApi = self::generarClaveApi();
+        if(count(self::obtenerUsuario($usuario)) == 1){
+            try {
 
-        try {
+                $pdo = ConexionBD::obtenerInstancia()->obtenerBD();
 
-            $pdo = ConexionBD::obtenerInstancia()->obtenerBD();
+                // Sentencia INSERT
+                $comando = "INSERT INTO " . self::NOMBRE_TABLA . " ( " .
+                self::NOMBRE . "," .
+                self::CONTRASENA . "," .
+                self::CLAVE_API . "," .
+                self::PERFIL . "," .
+                self::FOTO . "," .
+                self::ISACTIVE . "," .
+                self::TELEFONO . "," .
+                self::EMAIL . "," .
+                self::DIRECCION . "," .
+                self::USUARIO . ")" .
+                    " VALUES(?,?,?,?,?,?,?,?,?,?)";
 
-            // Sentencia INSERT
-            $comando = "INSERT INTO " . self::NOMBRE_TABLA . " ( " .
-            self::NOMBRE . "," .
-            self::CONTRASENA . "," .
-            self::CLAVE_API . "," .
-            self::PERFIL . "," .
-            self::FOTO . "," .
-            self::ISACTIVE . "," .
-            self::TELEFONO . "," .
-            self::EMAIL . "," .
-            self::DIRECCION . "," .
-            self::USUARIO . ")" .
-                " VALUES(?,?,?,?,?,?,?,?,?,?)";
+                $sentencia = $pdo->prepare($comando);
 
-            $sentencia = $pdo->prepare($comando);
+                $sentencia->bindParam(1, $nombre);
+                $sentencia->bindParam(2, $contrasenaEncriptada);
+                $sentencia->bindParam(3, $claveApi);
 
-            $sentencia->bindParam(1, $nombre);
-            $sentencia->bindParam(2, $contrasenaEncriptada);
-            $sentencia->bindParam(3, $claveApi);
+                $sentencia->bindParam(4, $perfil);
+                $sentencia->bindParam(5, $foto);
+                $sentencia->bindParam(6, $isActive);
+                $sentencia->bindParam(7, $telefono);
+                $sentencia->bindParam(8, $email);
+                $sentencia->bindParam(9, $direccion);
 
-            $sentencia->bindParam(4, $perfil);
-            $sentencia->bindParam(5, $foto);
-            $sentencia->bindParam(6, $isActive);
-            $sentencia->bindParam(7, $telefono);
-            $sentencia->bindParam(8, $email);
-            $sentencia->bindParam(9, $direccion);
+                $sentencia->bindParam(10, $usuario);
 
-            $sentencia->bindParam(10, $usuario);
+                $resultado = $sentencia->execute();
 
-            $resultado = $sentencia->execute();
+                if ($resultado) {
+                    return self::ESTADO_CREACION_EXITOSA;
+                } else {
 
-            if ($resultado) {
-                return self::ESTADO_CREACION_EXITOSA;
-            } else {
-                return self::ESTADO_CREACION_FALLIDA;
+                    return self::ESTADO_CREACION_FALLIDA;
+                }
+            } catch (PDOException $e) {
+                throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
             }
-        } catch (PDOException $e) {
-            throw new ExcepcionApi(self::ESTADO_ERROR_BD, $e->getMessage());
         }
-
     }
 
     /**
-     * Protege la contraseña con un algoritmo de encriptado
-     * @param $contrasenaPlana
+     * Protege la contraseña con un algoritmo de encriptado crypt de Longitud 60
+     * @param $contrasenaPlana (contrasena sin hash insertada por el usuario)
      * @return bool|null|string
      */
     private function encriptarContrasena($contrasenaPlana)
@@ -157,6 +158,23 @@ class usuarios
             return null;
         }
 
+    }
+
+    private function crearFoto($usuario, $fotoBase64){
+        $aleatorio = mt_rand(100,999);
+        $imagenString = base64_decode($fotoBase64);
+
+        $ruta = "vistas/img/usuarios/".$usuario."/".$aleatorio.".jpg";
+        $origen = imagecreatefromstring($imagenString);     
+        
+        if (!file_exists("../vistas/img/usuarios/".$usuario)) {
+            mkdir("../vistas/img/usuarios/".$usuario, 0777, true);
+        }
+
+        imagepng($origen, "../".$ruta);  
+        imagedestroy($origen);
+
+        return $ruta;
     }
 
     private function generarClaveApi()
@@ -178,14 +196,14 @@ class usuarios
     {
         $respuesta = array();
 
-        $body    = file_get_contents('php://input');
-        $usuario = json_decode($body);
+        $body = file_get_contents('php://input');
+        $user = json_decode($body);
 
-        $correo     = $usuario->correo;
-        $contrasena = $usuario->contrasena;
+        $usuario  = $user->usuario;
+        $password = $user->password;
 
-        if (self::autenticar($correo, $contrasena)) {
-            $usuarioBD = self::obtenerUsuario($correo);
+        if (self::autenticar($usuario, $password)) {
+            $usuarioBD = self::obtenerUsuario($usuario);
 
             if ($usuarioBD != null) {
                 http_response_code(200);
@@ -203,7 +221,7 @@ class usuarios
         }
     }
 
-    private function autenticar($correo, $contrasena)
+    private function autenticar($usuario, $password)
     {
         $comando = "SELECT password FROM " . self::NOMBRE_TABLA .
         " WHERE " . self::USUARIO . "=?";
@@ -212,14 +230,14 @@ class usuarios
 
             $sentencia = ConexionBD::obtenerInstancia()->obtenerBD()->prepare($comando);
 
-            $sentencia->bindParam(1, $correo);
+            $sentencia->bindParam(1, $usuario);
 
             $sentencia->execute();
 
             if ($sentencia) {
                 $resultado = $sentencia->fetch();
 
-                if (self::validarContrasena($contrasena, $resultado['password'])) {
+                if (self::validarContrasena($password, $resultado['password'])) {
                     return true;
                 } else {
                     return false;
@@ -235,7 +253,6 @@ class usuarios
 
     private function validarContrasena($contrasenaPlana, $contrasenaHash)
     {
-        //return password_verify($contrasenaPlana, $contrasenaHash);
         return password_verify($contrasenaPlana, $contrasenaHash);
     }
 

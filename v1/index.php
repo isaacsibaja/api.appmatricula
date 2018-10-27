@@ -1,14 +1,15 @@
 <?php
 
 require 'controladores/usuarios.php';
-require 'controladores/contactos.php';
+require 'controladores/cursos.php';
+
 require 'vistas/VistaXML.php';
 require 'vistas/VistaJson.php';
 require 'utilidades/ExcepcionApi.php';
 
 // Constantes de estado
-const ESTADO_URL_INCORRECTA = 2;
-const ESTADO_EXISTENCIA_RECURSO = 3;
+const ESTADO_URL_INCORRECTA      = 2;
+const ESTADO_EXISTENCIA_RECURSO  = 3;
 const ESTADO_METODO_NO_PERMITIDO = 4;
 
 // Preparar manejo de excepciones
@@ -25,8 +26,8 @@ switch ($formato) {
 
 set_exception_handler(function ($exception) use ($vista) {
     $cuerpo = array(
-        "estado" => $exception->estado,
-        "mensaje" => $exception->getMessage()
+        "estado"  => $exception->estado,
+        "mensaje" => $exception->getMessage(),
     );
     if ($exception->getCode()) {
         $vista->estado = $exception->getCode();
@@ -39,14 +40,15 @@ set_exception_handler(function ($exception) use ($vista) {
 );
 
 // Extraer segmento de la url
-if (isset($_GET['PATH_INFO']))
+if (isset($_GET['PATH_INFO'])) {
     $peticion = explode('/', $_GET['PATH_INFO']);
-else
+} else {
     throw new ExcepcionApi(ESTADO_URL_INCORRECTA, utf8_encode("No se reconoce la petición"));
+}
 
 // Obtener recurso
-$recurso = array_shift($peticion);
-$recursos_existentes = array('contactos', 'usuarios');
+$recurso             = array_shift($peticion);
+$recursos_existentes = array('cursos', 'usuarios');
 
 // Comprobar si existe el recurso
 if (!in_array($recurso, $recursos_existentes)) {
@@ -70,12 +72,10 @@ switch ($metodo) {
     default:
         // Método no aceptado
         $vista->estado = 405;
-        $cuerpo = [
-            "estado" => ESTADO_METODO_NO_PERMITIDO,
-            "mensaje" => utf8_encode("Método no permitido")
+        $cuerpo        = [
+            "estado"  => ESTADO_METODO_NO_PERMITIDO,
+            "mensaje" => utf8_encode("Método no permitido"),
         ];
         $vista->imprimir($cuerpo);
 
 }
-
-
