@@ -1,7 +1,7 @@
 <?php
-
 require 'controladores/usuarios.php';
 require 'controladores/cursos.php';
+require 'controladores/matricula.php';
 
 require 'vistas/VistaXML.php';
 require 'vistas/VistaJson.php';
@@ -48,12 +48,12 @@ if (isset($_GET['PATH_INFO'])) {
 
 // Obtener recurso
 $recurso             = array_shift($peticion);
-$recursos_existentes = array('cursos', 'usuarios');
+$recursos_existentes = array('cursos', 'usuarios', 'matricula');
 
 // Comprobar si existe el recurso
 if (!in_array($recurso, $recursos_existentes)) {
     throw new ExcepcionApi(ESTADO_EXISTENCIA_RECURSO,
-        "No se reconoce el recurso al que intentas acceder");
+        "No se reconoce ".$recurso." al que intentas acceder");
 }
 
 $metodo = strtolower($_SERVER['REQUEST_METHOD']);
@@ -61,9 +61,9 @@ $metodo = strtolower($_SERVER['REQUEST_METHOD']);
 // Filtrar método
 switch ($metodo) {
     case 'get':
-    case 'post':
-    case 'put':
     case 'delete':
+    case 'put':
+    case 'post':
         if (method_exists($recurso, $metodo)) {
             $respuesta = call_user_func(array($recurso, $metodo), $peticion);
             $vista->imprimir($respuesta);
@@ -74,7 +74,7 @@ switch ($metodo) {
         $vista->estado = 405;
         $cuerpo        = [
             "estado"  => ESTADO_METODO_NO_PERMITIDO,
-            "mensaje" => utf8_encode("Método no permitido"),
+            "mensaje" => utf8_encode($recurso." Método no permitido ".$metodo),
         ];
         $vista->imprimir($cuerpo);
 

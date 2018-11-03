@@ -30,7 +30,7 @@ class cursos
     public static function get($peticion)
     {
         //$idPersona = usuarios::autorizar();
-        
+
         if (empty($peticion[0])) {
             return self::obtenerCursos($idPersona);
         } else {
@@ -120,7 +120,7 @@ class cursos
                 // Ligar idPersona
             } else {
                 $comando = "SELECT * FROM " . self::NOMBRE_TABLA .
-                " WHERE " . self::ID_CURSO . "= ? and ".self::ISACTIVE ." = ?";
+                " WHERE " . self::ID_CURSO . "= ? and ".self::ISACTIVE ." = 1";
 
                 /*" WHERE " . self::ID_CURSO . "=? AND " .
                 self::ID_PERSONA . "=?";*/
