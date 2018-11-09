@@ -36,7 +36,7 @@ class ModeloMatricula{
 	}
 
 	static public function mdlMostrarMatriculaPorPersona($valor){
-		$stmt = ConexionBD::obtenerInstancia()->obtenerBD()->prepare("SELECT idCurso FROM matricula WHERE idPersona = ?");
+		$stmt = ConexionBD::obtenerInstancia()->obtenerBD()->prepare("SELECT id, idCurso FROM matricula WHERE idPersona = ?");
 
 		$stmt -> bindParam(1, $valor, PDO::PARAM_STR);
 

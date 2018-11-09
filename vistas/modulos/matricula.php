@@ -26,12 +26,11 @@
         
         $cursos = ControladorCurso::ctrMostrarCurso(null, null);
         $matriculas = ControladorMatricula::ctrMostrarMatriculaPorPersona($_SESSION['id']);
-
+   
         foreach ($cursos as $key => $value){
           $temporal = 0;
           for ($i = 0; $i < count($matriculas); $i++) { 
-            if(in_array($value['id'], $matriculas[$i])){
-             
+            if($value['id'] == $matriculas[$i][1]){
               echo '<div class="cursoIndividual">';
               echo '<div class="nombreCurso">'.$value["nombre"].'</div>';
 
